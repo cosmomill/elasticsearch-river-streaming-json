@@ -1,20 +1,19 @@
 package org.elasticsearch.river.json;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.Map;
-
-import org.elasticsearch.ElasticSearchException;
-import org.elasticsearch.common.io.Closeables;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.util.concurrent.jsr166y.TransferQueue;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.Map;
 
 
 public class RiverImporter {
@@ -84,8 +83,12 @@ public class RiverImporter {
         } catch (IOException e) {
             logger.error("Could not get content with lastUpdatedTimestamp [{}]", e, lastIndexUpdate);
         } finally {
-            Closeables.closeQuietly(is);
-            if (parser != null) {
+			try {
+				is.close();
+			} catch (IOException e) {
+				logger.error("Failed to close input stream", e);
+			}
+			if (parser != null) {
                 parser.close();
             }
         }
@@ -111,7 +114,7 @@ public class RiverImporter {
 
         if (connection.getResponseCode() != 200) {
             String message = String.format("River endpoint problem for url %s: Connection response code was %s %s", url, connection.getResponseCode(), connection.getResponseMessage());
-            throw new ElasticSearchException(message);
+            throw new ElasticsearchException(message);
         }
 
         return connection.getInputStream();

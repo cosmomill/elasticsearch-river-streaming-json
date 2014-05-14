@@ -1,10 +1,6 @@
 package org.elasticsearch.river.json;
 
-import static org.elasticsearch.client.Requests.*;
-
-import java.util.concurrent.TimeUnit;
-
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -18,6 +14,10 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.jsr166y.LinkedTransferQueue;
 import org.elasticsearch.common.util.concurrent.jsr166y.TransferQueue;
 import org.elasticsearch.river.*;
+
+import java.util.concurrent.TimeUnit;
+
+import static org.elasticsearch.client.Requests.indexRequest;
 
 public class JsonRiver extends AbstractRiverComponent implements River {
 
@@ -52,7 +52,7 @@ public class JsonRiver extends AbstractRiverComponent implements River {
             slurperThread.start();
             indexerThread = EsExecutors.daemonThreadFactory("json_river_indexer").newThread(new Indexer());
             indexerThread.start();
-        } catch (ElasticSearchException e) {
+        } catch (ElasticsearchException e) {
             logger.error("Error starting indexer and slurper. River is not running", e);
             closed = true;
         }
@@ -89,7 +89,7 @@ public class JsonRiver extends AbstractRiverComponent implements River {
                     }
 
                     logger.info("Slurping [{}] documents with timestamp [{}]", result.exportedProductCount, result.exportTimestamp);
-                } catch (ElasticSearchException e) {
+                } catch (ElasticsearchException e) {
                     logger.error("Failed to import data from json stream", e);
                 }
 
