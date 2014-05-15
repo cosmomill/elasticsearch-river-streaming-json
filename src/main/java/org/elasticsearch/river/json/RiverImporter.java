@@ -31,15 +31,12 @@ public class RiverImporter {
 
     public RiverProductImport executeImport(String lastIndexUpdate) {
         RiverProductImport result = new RiverProductImport();
-
-        XContentParser parser = null;
-        InputStream is = null;
         String timestamp = null;
 
-        try {
-            is = getConnectionInputstream(lastIndexUpdate);
-            parser = JsonXContent.jsonXContent.createParser(is);
-
+        try (
+			InputStream is = getConnectionInputstream(lastIndexUpdate);
+			XContentParser parser = JsonXContent.jsonXContent.createParser(is);
+		) {
             String action = null;
             Map<String, Object> product = null;
             String id = null;
@@ -82,16 +79,21 @@ public class RiverImporter {
 
         } catch (IOException e) {
             logger.error("Could not get content with lastUpdatedTimestamp [{}]", e, lastIndexUpdate);
-        } finally {
-			try {
-				is.close();
-			} catch (IOException e) {
-				logger.error("Failed to close input stream", e);
-			}
-			if (parser != null) {
-                parser.close();
-            }
         }
+
+
+
+//		finally {
+//			try {
+//				is.close();
+//			} catch (IOException e) {
+//				logger.error("Failed to close input stream", e);
+//			}
+//
+//			if (parser != null) {
+//                parser.close();
+//            }
+//        }
 
         return result;
     }

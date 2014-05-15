@@ -150,7 +150,7 @@ public class JsonRiverTest {
         GetRequestBuilder builder = new GetRequestBuilder(client);
         GetResponse response = builder.setIndex("_river").setType("json").setId("lastUpdatedTimestamp").execute().actionGet();
 
-        //assertThat(response.isExists(), is(true));
-        assertThat(response.getSource().get("lastUpdatedTimestamp").toString(), is(not(nullValue())));
+        assertThat(response.isExists(), is(true));
+        assertThat(response.getField("lastUpdatedTimestamp"), is(not(nullValue())));
     }
 }
