@@ -51,32 +51,30 @@ The JSON used to import or delete products from the river should look like this 
 
 <pre class="prettyprint">
 {
-  "timestamp" : "2012-09-20 16:55:23",
-  "products" : [
-    {
-      "action" : "index",
-      "product" : {
-        "id"     : "5",
-	"name"   : "IPhone 4s",
-	"price"  : 400.00,
-	"stock"  : 123,
-      }
-    },
-    {
-      "action" : "index",
-      "product" : {
-        "id"     : "12",
-	"name"   : "IPhone 5",
-	"price"  : 700.00
-      }
-    },
-    {
-      "action" : "delete",
-      "product" : {
-        "id"     : "16",
-      }
-    }
-  ]
+    "timestamp": "2015-02-21 18:16:23",
+    "products": [
+        {
+            "action": "index",
+			"id": "5",
+            "product": {
+                "name": "IPhone 4s",
+                "price": 400,
+                "stock": 123
+            }
+        },
+        {
+            "action": "index",
+			"id": "12",
+            "product": {
+                "name": "IPhone 5",
+                "price": 700
+            }
+        },
+        {
+            "action": "delete",
+			"id": "12"
+        }
+    ]
 }
 </pre>
 
