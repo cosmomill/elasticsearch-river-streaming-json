@@ -55,7 +55,7 @@ The JSON used to import or delete products from the river should look like this 
     "products": [
         {
             "action": "index",
-			"id": "5",
+            "id": "5",
             "product": {
                 "name": "IPhone 4s",
                 "price": 400,
@@ -64,7 +64,7 @@ The JSON used to import or delete products from the river should look like this 
         },
         {
             "action": "index",
-			"id": "12",
+            "id": "12",
             "product": {
                 "name": "IPhone 5",
                 "price": 700
@@ -72,7 +72,7 @@ The JSON used to import or delete products from the river should look like this 
         },
         {
             "action": "delete",
-			"id": "12"
+            "id": "12"
         }
     ]
 }
