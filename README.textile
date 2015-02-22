@@ -268,19 +268,17 @@ This river is intended to be a minimal example, so you can rip it off and make i
 
 h3. Reading river configuration from river index
 
-Every configuration value is hardcoded in the river, which is useless. You want different configuration per river setup, which means that the configuration has to be supplied, when registering the river like this:
+A simple configuration is now included. Have a look at "JsonRiver.java":src/main/java/org/elasticsearch/river/json/JsonRiver.java#L48-L71. The configuration has to be supplied, when registering the river like this:
 
 <pre class="prettyprint">
 curl -v -XPUT 'localhost:9200/_river/my_river/_meta' -d '{
   "type" : "json",
-  "configuration" : {
+  "json" : {
     "index"          : "products",
     "type"           : "product",
-    "max_bulk_size"  : 5000,
-    "endpoint"       : "http://localhost:4567/data?",
-    "parameter"      : "lastUpdate",
-    "refresh"        : "30s",
-    "active"         : true
+    "bulk_size"      : 5000,
+    "url"            : "http://localhost:4567/data?",
+    "update_rate"    : "30s"
   } 
 }'
 </pre>
