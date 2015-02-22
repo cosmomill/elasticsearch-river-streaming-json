@@ -11,11 +11,13 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TransferQueue;
 import org.elasticsearch.river.*;
 
 import java.util.concurrent.TimeUnit;
+import java.util.Map;
 
 import static org.elasticsearch.client.Requests.indexRequest;
 
@@ -24,15 +26,17 @@ public class JsonRiver extends AbstractRiverComponent implements River {
     private final Client client;
     private final String riverIndexName;
 
-    public static String RIVER_URL = "http://localhost:50000/data";
-    public static String RIVER_INDEX = "products";
-    public static String RIVER_TYPE = "product";
-    public static TimeValue RIVER_REFRESH_INTERVAL = TimeValue.timeValueSeconds(30);
+    public static String RIVER_TYPE = "doc";
     public static int RIVER_MAX_BULK_SIZE = 5000;
 
     private volatile Thread slurperThread;
     private volatile Thread indexerThread;
-    private volatile boolean closed;
+    private volatile boolean closed = false;
+    private volatile TimeValue riverRefreshInterval;
+    private volatile String riverUrl;
+    private volatile String riverIndex;
+    private volatile String riverType;
+    private volatile int riverMaxBulkSize;
 
     private final TransferQueue<RiverProduct> stream = new LinkedTransferQueue<RiverProduct>();
 
@@ -40,13 +44,42 @@ public class JsonRiver extends AbstractRiverComponent implements River {
         super(riverName, settings);
         this.riverIndexName = riverIndexName;
         this.client = client;
+
+        if (settings.settings().containsKey("json")) {
+            Map<String, Object> feed = (Map<String, Object>) settings.settings().get("json");
+
+            riverUrl = XContentMapValues.nodeStringValue(feed.get("url"), null);
+            if (riverUrl == null) {
+                logger.error("`url` is not set. Please define it.");
+                closed = true;
+                return;
+            }
+
+            riverRefreshInterval = XContentMapValues.nodeTimeValue(feed.get("update_rate"), null);
+            if (riverRefreshInterval == null) {
+                riverRefreshInterval = TimeValue.timeValueSeconds(30);
+                logger.warn("You didn't define the update rate. Switching to defaults : [{}] sec.", riverRefreshInterval);
+            }
+
+            riverIndex = XContentMapValues.nodeStringValue(feed.get("index"), riverName.name());
+            riverType = XContentMapValues.nodeStringValue(feed.get("type"), RIVER_TYPE);
+            riverMaxBulkSize = XContentMapValues.nodeIntegerValue(feed.get("bulk_size"), RIVER_MAX_BULK_SIZE);
+        } else {
+            logger.error("You didn't define the json url.");
+            closed = true;
+            return;
+        }
     }
 
     @Override
     public void start() {
-        logger.info("Starting JSON stream river: url [{}], query interval [{}]", RIVER_URL, RIVER_REFRESH_INTERVAL);
+        if (closed) {
+            logger.info("json stream river is closed. Exiting");
+            return;
+        }
 
-        closed = false;
+        logger.info("Starting JSON stream river: url [{}], query interval [{}]", riverUrl, riverRefreshInterval);
+
         try {
             slurperThread = EsExecutors.daemonThreadFactory("json_river_slurper").newThread(new Slurper());
             slurperThread.start();
@@ -75,7 +108,7 @@ public class JsonRiver extends AbstractRiverComponent implements River {
 
         @Override
         public void run() {
-            RiverImporter importer = new RiverImporter(RIVER_URL, stream);
+            RiverImporter importer = new RiverImporter(riverUrl, stream);
 
             while (!closed) {
                 logger.debug("Slurper run() started");
@@ -94,7 +127,7 @@ public class JsonRiver extends AbstractRiverComponent implements River {
                 }
 
                 try {
-                    Thread.sleep(RIVER_REFRESH_INTERVAL.getMillis());
+                    Thread.sleep(riverRefreshInterval.getMillis());
                 } catch (InterruptedException e1) {}
             }
         }
@@ -136,7 +169,7 @@ public class JsonRiver extends AbstractRiverComponent implements River {
                     bulk = client.prepareBulk();
                     do {
                         addProductToBulkRequest(product);
-                    } while ((product = stream.poll(250, TimeUnit.MILLISECONDS)) != null && deletedDocuments + insertedDocuments < RIVER_MAX_BULK_SIZE);
+                    } while ((product = stream.poll(250, TimeUnit.MILLISECONDS)) != null && deletedDocuments + insertedDocuments < riverMaxBulkSize);
                 } catch (InterruptedException e) {
                     continue;
                 } finally {
@@ -148,13 +181,13 @@ public class JsonRiver extends AbstractRiverComponent implements River {
 
         private void addProductToBulkRequest(RiverProduct riverProduct) {
             if (riverProduct.action == RiverProduct.Action.DELETE) {
-                //bulk.add(deleteRequest(RIVER_INDEX).type(RIVER_TYPE).id(riverProduct.id));
-                logger.info("DELETING {}/{}/{}", RIVER_INDEX, RIVER_TYPE, riverProduct.id);
-                client.prepareDelete(RIVER_INDEX, RIVER_TYPE, riverProduct.id).execute().actionGet();
+                //bulk.add(deleteRequest(riverIndex).type(riverType).id(riverProduct.id));
+                logger.info("DELETING {}/{}/{}", riverIndex, riverType, riverProduct.id);
+                client.prepareDelete(riverIndex, riverType, riverProduct.id).execute().actionGet();
                 deletedDocuments++;
             } else {
-                logger.info("INDEXING {}/{}/{}", RIVER_INDEX, RIVER_TYPE, riverProduct.id);
-                bulk.add(indexRequest(RIVER_INDEX).type(RIVER_TYPE).id(riverProduct.id).source(riverProduct.product));
+                logger.info("INDEXING {}/{}/{}", riverIndex, riverType, riverProduct.id);
+                bulk.add(indexRequest(riverIndex).type(riverType).id(riverProduct.id).source(riverProduct.product));
                 insertedDocuments++;
             }
         }
