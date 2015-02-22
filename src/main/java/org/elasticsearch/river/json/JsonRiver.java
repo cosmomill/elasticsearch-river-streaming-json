@@ -149,11 +149,11 @@ public class JsonRiver extends AbstractRiverComponent implements River {
         private void addProductToBulkRequest(RiverProduct riverProduct) {
             if (riverProduct.action == RiverProduct.Action.DELETE) {
                 //bulk.add(deleteRequest(RIVER_INDEX).type(RIVER_TYPE).id(riverProduct.id));
-                logger.error("DELETING {}/{}/{}", RIVER_INDEX, RIVER_TYPE, riverProduct.id);
+                logger.info("DELETING {}/{}/{}", RIVER_INDEX, RIVER_TYPE, riverProduct.id);
                 client.prepareDelete(RIVER_INDEX, RIVER_TYPE, riverProduct.id).execute().actionGet();
                 deletedDocuments++;
             } else {
-                logger.error("INDEXING {}/{}/{}", RIVER_INDEX, RIVER_TYPE, riverProduct.id);
+                logger.info("INDEXING {}/{}/{}", RIVER_INDEX, RIVER_TYPE, riverProduct.id);
                 bulk.add(indexRequest(RIVER_INDEX).type(RIVER_TYPE).id(riverProduct.id).source(riverProduct.product));
                 insertedDocuments++;
             }
@@ -164,7 +164,6 @@ public class JsonRiver extends AbstractRiverComponent implements River {
             long totalTimeInSeconds = sw.stop().totalTime().seconds();
             long totalDocumentsPerSecond = (totalTimeInSeconds == 0) ? totalDocuments : totalDocuments / totalTimeInSeconds;
             logger.info("INDEXED {} documents, {} insertions/updates, {} deletions, {} documents per second", totalDocuments, insertedDocuments, deletedDocuments, totalDocumentsPerSecond);
-            logger.info("Indexed {} documents, {} insertions/updates, {} deletions, {} documents per second", totalDocuments, insertedDocuments, deletedDocuments, totalDocumentsPerSecond);
         }
     }
 }
