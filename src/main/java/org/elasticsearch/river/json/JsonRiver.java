@@ -32,11 +32,12 @@ public class JsonRiver extends AbstractRiverComponent implements River {
     private volatile Thread slurperThread;
     private volatile Thread indexerThread;
     private volatile boolean closed = false;
-    private volatile TimeValue riverRefreshInterval;
-    private volatile String riverUrl;
-    private volatile String riverIndex;
-    private volatile String riverType;
-    private volatile int riverMaxBulkSize;
+    
+    private TimeValue riverRefreshInterval;
+    private String riverUrl;
+    private String riverIndex;
+    private String riverType;
+    private int riverMaxBulkSize;
 
     private final TransferQueue<RiverProduct> stream = new LinkedTransferQueue<RiverProduct>();
 
@@ -163,16 +164,20 @@ public class JsonRiver extends AbstractRiverComponent implements River {
                 sw = new StopWatch().start();
                 deletedDocuments = 0;
                 insertedDocuments = 0;
+                RiverProduct product = null;
 
                 try {
-                    RiverProduct product = stream.take();
+                    product = stream.take();
                     bulk = client.prepareBulk();
                     do {
                         addProductToBulkRequest(product);
-                    } while ((product = stream.poll(250, TimeUnit.MILLISECONDS)) != null && deletedDocuments + insertedDocuments < riverMaxBulkSize);
+                    } while ((product = stream.poll(250, TimeUnit.MILLISECONDS)) != null && deletedDocuments + insertedDocuments < riverMaxBulkSize - 1);
                 } catch (InterruptedException e) {
                     continue;
                 } finally {
+                    if (product != null) {
+                        addProductToBulkRequest(product);
+                    }
                     bulk.execute().actionGet();
                 }
                 logStatistics();
